@@ -17,12 +17,6 @@ export const metadata: Metadata = {
   description: "An adaptive vocabulary flashcard game that grows with you. Learn new words, their meanings, etymology, and usage in a fun, interactive way.",
   keywords: ["vocabulary", "flashcards", "word game", "education", "kids", "learning"],
   authors: [{ name: "Lexiflip" }],
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Lexiflip",
-  },
 };
 
 export const viewport: Viewport = {

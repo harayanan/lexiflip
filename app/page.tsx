@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Flashcard } from '@/components/Flashcard'
 import { useProgress } from '@/lib/useProgress'
+import type { WordData } from '@/lib/types'
 import {
   Loader2,
   ThumbsUp,
@@ -13,27 +14,17 @@ import {
   BookOpen,
   Trophy,
   Sparkles,
+  ChevronUp,
 } from 'lucide-react'
-
-interface WordData {
-  word: string
-  pronunciation: string
-  partOfSpeech: string
-  definition: string
-  etymology: string
-  exampleSentence: string
-  funFact?: string
-  synonyms: string[]
-  difficulty: number
-}
 
 export default function Home() {
   const [wordData, setWordData] = useState<WordData | null>(null)
   const [isFlipped, setIsFlipped] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showLevelUp, setShowLevelUp] = useState(false)
 
-  const { progress, isLoaded, markKnown, markLearning, skipWord, resetProgress } = useProgress()
+  const { progress, isLoaded, markKnown, markLearning, skipWord, setDifficulty, resetProgress } = useProgress()
 
   const fetchNewWord = useCallback(async () => {
     setIsLoading(true)
@@ -73,7 +64,13 @@ export default function Home() {
 
   const handleKnewIt = () => {
     if (wordData) {
+      const prevDifficulty = progress.currentDifficulty
       markKnown(wordData.word)
+      // Show level-up animation if streak is about to trigger level up
+      if (progress.streak === 2 && prevDifficulty < 7) {
+        setShowLevelUp(true)
+        setTimeout(() => setShowLevelUp(false), 1500)
+      }
       fetchNewWord()
     }
   }
@@ -106,8 +103,28 @@ export default function Home() {
     'Master',
   ]
 
+  const difficultyColors = [
+    'bg-green-500',
+    'bg-teal-500',
+    'bg-cyan-500',
+    'bg-blue-500',
+    'bg-indigo-500',
+    'bg-purple-500',
+    'bg-pink-500',
+  ]
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+      {/* Level up toast */}
+      {showLevelUp && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-2 font-semibold">
+            <ChevronUp className="w-5 h-5" />
+            Level Up!
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
@@ -119,8 +136,8 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            <div className="flex items-center gap-1 text-orange-500">
-              <Flame className="w-4 h-4" />
+            <div className={`flex items-center gap-1 transition-colors ${progress.streak > 0 ? 'text-orange-500' : 'text-gray-400 dark:text-gray-600'}`}>
+              <Flame className={`w-4 h-4 ${progress.streak >= 2 ? 'animate-pulse' : ''}`} />
               <span className="font-medium">{progress.streak}</span>
             </div>
             <div className="flex items-center gap-1 text-green-500">
@@ -138,20 +155,40 @@ export default function Home() {
       {/* Difficulty indicator */}
       <div className="max-w-lg mx-auto px-4 py-3">
         <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-          <span>Difficulty: {difficultyLabels[progress.currentDifficulty - 1]}</span>
-          <div className="flex gap-1">
+          <span className="font-medium">
+            Level {progress.currentDifficulty}: {difficultyLabels[progress.currentDifficulty - 1]}
+          </span>
+          <div className="flex gap-1.5">
             {[1, 2, 3, 4, 5, 6, 7].map((level) => (
-              <div
+              <button
                 key={level}
-                className={`w-3 h-3 rounded-full transition-colors ${
+                title={`Level ${level}: ${difficultyLabels[level - 1]}`}
+                onClick={() => {
+                  setDifficulty(level)
+                  fetchNewWord()
+                }}
+                className={`w-3 h-3 rounded-full transition-all duration-300 cursor-pointer hover:scale-125 hover:opacity-80 ${
                   level <= progress.currentDifficulty
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                    ? difficultyColors[level - 1]
                     : 'bg-gray-300 dark:bg-gray-700'
-                }`}
+                } ${level === progress.currentDifficulty ? 'ring-2 ring-offset-1 ring-purple-400 dark:ring-offset-gray-900' : ''}`}
               />
             ))}
           </div>
         </div>
+        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 text-right">Tap a level to switch</p>
+        {/* Streak progress bar */}
+        {progress.streak > 0 && progress.currentDifficulty < 7 && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span>{progress.streak}/3 to level up</span>
+            <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all duration-300"
+                style={{ width: `${(progress.streak / 3) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main content */}
