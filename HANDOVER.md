@@ -88,5 +88,10 @@ No environment variables required.
 
 None.
 
+## Session: 2026-02-25
+
+### What was done (VPS storage optimization)
+- **node_modules removed** to reclaim 716 MB disk. Run `npm install` to restore before development.
+
 ---
-*Last reviewed: 2026-02-22 (level chooser, flip fix, default difficulty, word audit)*
+*Last reviewed: 2026-02-25*
